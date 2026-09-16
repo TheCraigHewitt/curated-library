@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Curated Image Library</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Curated Image Library</h1>
+      <p>Proof of concept. Public stock today (Pexels + Pixabay). Same schema swaps to Adobe Stock. An agent picks from the tagged index — nobody hunts from scratch.</p>
+    </div>
+    <nav>
+      <button data-tab="library" class="on">Library</button>
+      <button data-tab="selector">Prompt selector</button>
+    </nav>
+  </header>
+
+  <div id="app">
+    <div id="mix"></div>
+
+    <section id="panel-library" class="panel">
+      <div class="layout">
+        <aside>
+          <label for="f-q">Search</label>
+          <input id="f-q" placeholder="headset, fiber, clinic…">
+          <label for="f-category">Category</label>
+          <select id="f-category"></select>
+          <label for="f-use">Use</label>
+          <select id="f-use"></select>
+          <label for="f-gender">Gender</label>
+          <select id="f-gender"></select>
+          <label for="f-ethnicity">Ethnicity</label>
+          <select id="f-ethnicity"></select>
+          <label for="f-vertical">Vertical</label>
+          <select id="f-vertical"></select>
+        </aside>
+        <div>
+          <p id="count"></p>
+          <div id="grid"></div>
+        </div>
+        <div id="detail"></div>
+      </div>
+    </section>
+
+    <section id="panel-selector" class="panel" hidden>
+      <div class="selector">
+        <div>
+          <p>Type a campaign brief. The selector only reads the JSON index — it does not search Adobe live.</p>
+          <div id="chips"></div>
+          <textarea id="prompt"></textarea>
+          <p><button id="run" type="button">Pick 3 images</button></p>
+        </div>
+        <div id="picks"></div>
+      </div>
+    </section>
+
+  </div>
+
+  <script src="library-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+[
+  {
+    "source_id": "8939050",
+    "reason": "Person staring at a laptop/phone/tablet as the main action."
+  },
+  {
+    "source_id": "7964543",
+    "reason": "Handshake."
+  },
+  {
+    "source_id": "7652337",
+    "reason": "Handshake is the main action."
+  },
+  {
+    "source_id": "6128059",
+    "reason": "Handshake"
+  },
+  {
+    "source_id": "35890090",
+    "reason": "The main action involves ground crew working on an aircraft, which does not fit the intended category of people in a travel context."
+  },
+  {
+    "source_id": "29877226",
+    "reason": "The main action involves ground crew interacting with an airplane, which does not align with the intended category of people."
+  },
+  {
+    "source_id": "30220728",
+    "reason": "The main action is not related to people; it's an aerial view of an airport."
+  },
+  {
+    "source_id": "3931560",
+    "reason": "The main action of the people is a handshake, which is a cliché."
+  },
+  {
+    "source_id": "4484042",
+    "reason": "person staring at a laptop/phone/tablet as the main action"
+  },
+  {
+    "source_id": "7755457",
+    "reason": "Main action involves a person handing a credit card, which is a cliché for payment scenarios."
+  },
+  {
+    "source_id": "6812427",
+    "reason": "person staring at a laptop/phone/tablet as the main action"
+  }
+]

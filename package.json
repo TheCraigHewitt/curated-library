@@ -1,0 +1,11 @@
+{
+  "name": "curated-library",
+  "private": true,
+  "type": "module",
+  "description": "Tagged stock library for ABM. Public sources now, Adobe Stock later.",
+  "scripts": {
+    "start": "npx serve .",
+    "ingest": "node scripts/ingest.mjs",
+    "select": "node scripts/select.mjs --demo"
+  }
+}
