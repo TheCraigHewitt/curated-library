@@ -2,7 +2,7 @@
   "name": "curated-library",
   "private": true,
   "type": "module",
-  "description": "Tagged stock library for ABM. Public sources now, Adobe Stock later.",
+  "description": "Tagged stock library for ads and landing pages. Public sources or Adobe Stock.",
   "scripts": {
     "start": "npx serve .",
     "ingest": "node scripts/ingest.mjs",

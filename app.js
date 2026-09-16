@@ -181,7 +181,7 @@ function renderGrid() {
   $('#count').textContent = `${list.length} images`;
   $('#grid').innerHTML = list.map((r) => `
     <button class="card ${state.selected?.id === r.id ? 'on' : ''}" data-id="${r.id}">
-      <img src="${r.files.local || r.files.thumb || r.files.preview}" alt="${r.title}" loading="lazy">
+      <img src="${r.files.thumb || r.files.preview || r.files.local}" alt="${r.title}" loading="lazy">
       <div class="meta">
         <strong>${r.id}</strong>
         <span>${r.category}${r.people?.gender && r.people.gender !== 'none' ? ' · ' + r.people.gender : ''}</span>
@@ -248,7 +248,7 @@ function renderDetail(r) {
   };
   $('#detail').innerHTML = `
     <button type="button" class="detail-close" id="detail-close" aria-label="Close">×</button>
-    <img src="${r.files.local || r.files.preview}" alt="${r.title}">
+    <img src="${r.files.thumb || r.files.preview || r.files.local}" alt="${r.title}">
     <h3>${escapeHtml(r.id)} · ${escapeHtml(r.title || '')}</h3>
     <p class="desc">${escapeHtml(r.llm_description || '')}</p>
     ${row('Category', `<strong>${escapeHtml(r.category || '')}</strong>`)}
@@ -266,7 +266,7 @@ function renderDetail(r) {
     ${row('Photographer', escapeHtml(r.photographer || ''))}
     ${row('Size', r.width && r.height ? `${r.width} × ${r.height}` : '')}
     ${row('Canva asset', r.canva_asset_id || '<span class="muted">not uploaded yet</span>')}
-    ${row('Adobe id', r.adobe_asset_id || '<span class="muted">swap source later</span>')}
+    ${row('Adobe id', r.adobe_asset_id || '<span class="muted">not from Adobe</span>')}
     <details>
       <summary>Full JSON record</summary>
       <pre>${escapeHtml(JSON.stringify(shown, null, 2))}</pre>
@@ -279,7 +279,7 @@ function renderPicks() {
   state.picks = picks;
   $('#picks').innerHTML = picks.map((p, i) => `
     <article class="pick" data-id="${p.r.id}" title="Open metadata">
-      <img src="${p.r.files.local || p.r.files.preview}" alt="${p.r.title}">
+      <img src="${p.r.files.thumb || p.r.files.preview || p.r.files.local}" alt="${p.r.title}">
       <div>
         <strong>pick_${i + 1} · ${p.r.id}</strong>
         <em>score ${p.score}</em>

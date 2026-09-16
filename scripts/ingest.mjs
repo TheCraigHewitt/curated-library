@@ -6,8 +6,10 @@
  *   node scripts/ingest.mjs --fetch-only
  *   node scripts/ingest.mjs --tag-only
  *
- * Env: PEXELS_API_KEY, PIXABAY_API_KEY, OPENAI_API_KEY (optional, falls back
- * to heuristic tags if missing). Loads this folder's .env.
+ * Env: PEXELS_API_KEY + PIXABAY_API_KEY for SOURCE=public (default).
+ *      ADOBE_STOCK_API_KEY + SOURCE=adobe for Adobe Stock.
+ *      OPENAI_API_KEY optional (falls back to heuristic tags).
+ * Loads this folder's .env. See README.md.
  */
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
@@ -37,6 +39,9 @@ loadEnv(join(ROOT, '.env'));
 const PEXELS = process.env.PEXELS_API_KEY;
 const PIXABAY = process.env.PIXABAY_API_KEY;
 const OPENAI = process.env.OPENAI_API_KEY;
+const ADOBE = process.env.ADOBE_STOCK_API_KEY;
+const ADOBE_PRODUCT = process.env.ADOBE_STOCK_PRODUCT || 'curated-library/1.0';
+const ADOBE_TOKEN = process.env.ADOBE_STOCK_ACCESS_TOKEN;
 
 async function readJson(path, fallback) {
   try { return JSON.parse(await readFile(path, 'utf8')); } catch { return fallback; }
@@ -73,10 +78,48 @@ function compositionFromSize(w, h) {
   return ratio > 1.25 ? 'landscape-master' : 'square-master';
 }
 
-async function searchAdobe(_query) {
-  throw new Error(
-    'SOURCE=adobe is the production swap. Set ADOBE_STOCK_API_KEY and implement Search/Files here. The record shape stays the same (source: "adobe", adobe_asset_id). POC ingest uses SOURCE=public (Pexels + Pixabay).',
-  );
+async function searchAdobe(query, perPage = 15) {
+  if (!ADOBE) throw new Error('ADOBE_STOCK_API_KEY missing. Stock Search API is Enterprise-only — see README.');
+
+  const url = new URL('https://stock.adobe.io/Rest/Media/1/Search/Files');
+  url.searchParams.set('locale', 'en_US');
+  url.searchParams.set('search_parameters[words]', query.q);
+  url.searchParams.set('search_parameters[limit]', String(Math.min(perPage, 32)));
+  url.searchParams.set('search_parameters[filters][orientation]', 'horizontal');
+  const vector = query.category === 'vector' || query.source === 'pixabay' || query.image_type === 'vector';
+  if (vector) url.searchParams.set('search_parameters[filters][content_type:vector]', '1');
+  else url.searchParams.set('search_parameters[filters][content_type:photo]', '1');
+  for (const col of ['id', 'title', 'width', 'height', 'thumbnail_url', 'thumbnail_500_url', 'thumbnail_1000_url', 'creator_name']) {
+    url.searchParams.append('result_columns[]', col);
+  }
+
+  const headers = { 'x-api-key': ADOBE, 'X-Product': ADOBE_PRODUCT };
+  if (ADOBE_TOKEN) headers.Authorization = `Bearer ${ADOBE_TOKEN}`;
+
+  const res = await fetch(url, { headers });
+  if (!res.ok) throw new Error(`Adobe Stock ${res.status} ${await res.text()}`);
+  const data = await res.json();
+
+  return (data.files || []).map((p) => ({
+    source: 'adobe',
+    source_id: String(p.id),
+    source_url: `https://stock.adobe.com/${p.id}`,
+    preview_url: p.thumbnail_1000_url || p.thumbnail_500_url || p.thumbnail_url,
+    thumb_url: p.thumbnail_url || p.thumbnail_500_url,
+    download_url: p.thumbnail_1000_url || p.thumbnail_500_url || p.thumbnail_url,
+    width: p.width,
+    height: p.height,
+    title: p.title || query.q,
+    alt: p.title || '',
+    photographer: p.creator_name,
+    license: 'Adobe Stock',
+    query_id: query.id,
+    category: query.category,
+    verticals: query.verticals,
+    jobs: query.jobs,
+    uses: query.uses,
+    people_hint: query.people_hint,
+  }));
 }
 
 async function downloadThumb(record) {
@@ -171,12 +214,19 @@ async function searchPixabay(query, perPage = 15) {
   }));
 }
 
+async function searchForQuery(query) {
+  if (SOURCE_MODE === 'adobe') return searchAdobe(query, 20);
+  if (query.source === 'pixabay') return searchPixabay(query, 20);
+  return searchPexels(query, 15);
+}
+
 async function fetchCandidates(queries) {
   if (SOURCE_MODE === 'adobe') {
-    await searchAdobe(queries[0]);
+    if (!ADOBE) throw new Error('ADOBE_STOCK_API_KEY missing');
+  } else {
+    if (!PEXELS) throw new Error('PEXELS_API_KEY missing');
+    if (!PIXABAY) throw new Error('PIXABAY_API_KEY missing');
   }
-  if (!PEXELS) throw new Error('PEXELS_API_KEY missing');
-  if (!PIXABAY) throw new Error('PIXABAY_API_KEY missing');
 
   const seen = new Set();
   const candidates = [];
@@ -185,9 +235,7 @@ async function fetchCandidates(queries) {
     const take = query.target + 2;
     let hits = [];
     try {
-      hits = query.source === 'pixabay'
-        ? await searchPixabay(query, 20)
-        : await searchPexels(query, 15);
+      hits = await searchForQuery(query);
     } catch (err) {
       console.warn(`  skip ${query.id}: ${err.message}`);
       await sleep(400);
@@ -205,7 +253,7 @@ async function fetchCandidates(queries) {
       if (kept >= take) break;
     }
     console.log(`  ${query.id}: ${kept}/${hits.length}`);
-    await sleep(query.source === 'pexels' ? 80 : 120);
+    await sleep(SOURCE_MODE === 'adobe' ? 200 : query.source === 'pexels' ? 80 : 120);
   }
 
   return candidates;
@@ -338,8 +386,8 @@ function toRecord(c, tag, n) {
     source: c.source,
     source_id: c.source_id,
     source_url: c.source_url,
-    adobe_asset_id: null,
-    adobe_url: null,
+    adobe_asset_id: c.source === 'adobe' ? c.source_id : null,
+    adobe_url: c.source === 'adobe' ? c.source_url : null,
     canva_asset_id: null,
     license: c.license,
     title: tag.title || c.title,
@@ -357,7 +405,9 @@ function toRecord(c, tag, n) {
       original: c.download_url,
     },
     do_not_use_for: tag.do_not_use_for || [],
-    brand_notes: 'POC imagery — swap source to Adobe Stock Enterprise for production.',
+    brand_notes: c.source === 'adobe'
+      ? 'Adobe Stock preview. License the file before production use.'
+      : 'Public-stock preview. Swap SOURCE=adobe for production.',
     approved_by: null,
     approved_on: null,
     query_id: c.query_id,
